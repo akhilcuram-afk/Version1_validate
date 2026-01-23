@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market Potential Analysis Dashboard</title>
+    
+    <!-- External Libraries (CDNs) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <!-- Custom Styles -->
+    <style>
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            /* Updated to very light moss green */
+            background-color: #f1f7f0;
+        }
+        .card {
+            transition: all 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .slider-thumb::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #3b82f6;
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        .slider-thumb::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: #3b82f6;
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        /* Custom Scrollbar */
+        .custom-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 3px;
+        }
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
+            background-color: #1f2937;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 10;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.75rem;
+            font-weight: normal;
+        }
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+        .tab-active {
+            border-bottom: 2px solid #2563eb;
+            color: #2563eb;
+            font-weight: 600;
+        }
+        .tab-inactive {
+            border-bottom: 2px solid transparent;
+            color: #6b7280;
+            font-weight: 500;
+        }
+        .tab-inactive:hover {
+            color: #374151;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        /* New Badge Animation */
+        @keyframes pulse-soft {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+        .new-badge {
+            animation: pulse-soft 2s infinite;
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <!-- Navbar -->
+    <nav class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 flex items-center text-blue-600">
+                        <i class="fa-solid fa-chart-pie text-2xl mr-2"></i>
+                        <span class="font-bold text-xl tracking-tight">Market Potential Calculator</span>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-6">
+                    <!-- Currency Toggle -->
+                    <div class="flex items-center bg-gray-100 rounded-lg p-1">
+                        <button id="btnEUR" onclick="setCurrency('EUR')" class="px-3 py-1 rounded-md text-sm font-medium transition shadow-sm bg-white text-blue-600">€ EUR</button>
+                        <button id="btnAUD" onclick="setCurrency('AUD')" class="px-3 py-1 rounded-md text-sm font-medium transition text-gray-500 hover:text-gray-700">$ AUD</button>
+                    </div>
+
+                    <button onclick="resetDefaults()" class="text-gray-500 hover:text-blue-600 text-sm font-medium transition">
+                        <i class="fa-solid fa-rotate-left mr-1"></i> Reset
+                    </button>
+                    <div class="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold">
+                        v2.9.1 Moss
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- Main Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+            <!-- LEFT COLUMN: Inputs -->
+            <div class="lg:col-span-5 space-y-6">
+                
+                <!-- Strategy Tabs -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-[800px]">
+                    <!-- Tab Headers -->
+                    <div class="flex border-b border-gray-100 flex-shrink-0">
+                        <button id="tabGlobalBtn" class="flex-1 py-4 text-sm text-center transition tab-active" onclick="switchTab('global')">
+                            <i class="fa-solid fa-earth-americas mr-2"></i>Regional Overview
+                        </button>
+                        <button id="tabCategoryBtn" class="flex-1 py-4 text-sm text-center transition tab-inactive" onclick="switchTab('category')">
+                            <i class="fa-solid fa-sliders mr-2"></i>By Category & PPM
+                        </button>
+                    </div>
+
+                    <!-- Tab Content: Global -->
+                    <div id="tabGlobalContent" class="p-6 flex-1 overflow-y-auto">
+                        <h2 class="text-sm font-bold text-gray-900 mb-4 uppercase tracking-wide text-xs text-gray-400">
+                            Regional Adjustments
+                        </h2>
+                        
+                        <!-- Sensitivity Adjustment -->
+                        <div class="mb-8">
+                            <div class="flex justify-between mb-2">
+                                <label class="text-sm font-medium text-gray-700 tooltip">
+                                    Sensitivity Adjustment
+                                    <span class="tooltiptext">Percentage of market captured across ALL categories. 100% = Full Potential.</span>
+                                    <i class="fa-regular fa-circle-question text-gray-400 ml-1 text-xs"></i>
+                                </label>
+                                <span id="penetrationDisplay" class="text-sm font-bold text-blue-600">20%</span>
+                            </div>
+                            <input type="range" min="0" max="100" value="20" class="slider-thumb w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" id="penetrationInput">
+                        </div>
+
+                        <!-- Global Usage Intensity -->
+                        <div class="mb-8">
+                            <div class="flex justify-between mb-2">
+                                <label class="text-sm font-medium text-gray-700 tooltip">
+                                    Regional Dosage Intensity (%)
+                                    <span class="tooltiptext">Overrides detailed settings. 0% = 0ppm, 100% = 500ppm.</span>
+                                    <i class="fa-regular fa-circle-question text-gray-400 ml-1 text-xs"></i>
+                                </label>
+                                <span id="dosageLabel" class="text-sm font-bold text-blue-600">Custom Mix</span>
+                            </div>
+                            <input type="range" min="0" max="100" value="20" step="1" class="slider-thumb w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" id="dosageInput">
+                            <div class="flex justify-between text-xs text-gray-400 mt-1">
+                                <span>0%</span>
+                                <span>50%</span>
+                                <span>100%</span>
+                            </div>
+                        </div>
+
+                        <!-- Volume Growth Projection Section -->
+                        <div class="mb-8 pt-6 border-t border-gray-100">
+                            <h3 class="text-sm font-bold text-gray-900 mb-4 flex items-center">
+                                <i class="fa-solid fa-chart-line text-green-500 mr-2"></i>Market Volume Projection
+                            </h3>
+
+                            <!-- Years Slider -->
+                            <div class="mb-5 bg-green-50 p-3 rounded-lg border border-green-100">
+                                <div class="flex justify-between mb-2">
+                                    <label class="text-xs font-bold text-green-800">Projection Timeline</label>
+                                    <span id="yearsDisplay" class="text-xs font-bold text-green-700">+3 Years</span>
+                                </div>
+                                <input type="range" min="0" max="10" value="3" step="1" 
+                                    class="slider-thumb w-full h-2 bg-green-200 rounded-lg appearance-none cursor-pointer" 
+                                    id="yearsInput">
+                                <div class="flex justify-between text-[9px] text-green-600 mt-1">
+                                    <span>Current</span>
+                                    <span>+5 Years</span>
+                                    <span>+10 Years</span>
+                                </div>
+                            </div>
+
+                            <!-- CAGR Sliders Container -->
+                            <div class="space-y-3" id="cagrListContainer">
+                                <!-- JS Injects CAGR sliders here -->
+                            </div>
+                        </div>
+
+                        <!-- Info Box -->
+                        <div class="p-3 bg-blue-50 rounded-lg border border-blue-100 text-xs text-blue-700 mt-6">
+                            <div class="flex items-start mb-1">
+                                <i class="fa-solid fa-bullseye mt-0.5 mr-2"></i>
+                                <span><strong>Target Calibration:</strong> The model is calibrated so that 100% Sensitivity equals exactly <strong>€8,734,576</strong> (Baseline).</span>
+                            </div>
+                            <div class="flex items-start">
+                                <i class="fa-solid fa-flask mt-0.5 mr-2"></i>
+                                <span><strong>New Solutions:</strong> Check "By Category" to enable fat reduction, crispiness, etc.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab Content: Category Specific -->
+                    <div id="tabCategoryContent" class="hidden flex-1 flex flex-col h-full bg-gray-50">
+                        <div class="p-4 border-b border-gray-200 bg-white shadow-sm z-10">
+                             <h2 class="text-sm font-bold text-gray-900 uppercase tracking-wide text-xs text-gray-400">
+                                Detailed Configuration
+                            </h2>
+                            <p class="text-xs text-gray-500 mt-1">Enable "New" solutions and adjust pricing per category below.</p>
+                        </div>
+                        
+                        <div class="overflow-y-auto custom-scroll p-4 space-y-4 flex-1" id="categoryListContainer">
+                            <!-- JS will inject category cards here -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- RIGHT COLUMN: Output & Charts -->
+            <div class="lg:col-span-7 space-y-6">
+
+                <!-- KPI Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Total Revenue -->
+                    <div class="bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl shadow-lg p-6 text-white card md:col-span-2">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-blue-100 text-sm font-medium mb-1">Total Potential Revenue</p>
+                                <h3 class="text-4xl font-bold" id="totalRevenueDisplay">€0.00</h3>
+                            </div>
+                            <div class="bg-blue-500 bg-opacity-30 p-3 rounded-lg">
+                                <i class="fa-solid fa-sack-dollar text-2xl"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4 text-blue-200 text-xs flex justify-between">
+                            <span>Based on current Sensitivity & Mix</span>
+                            <span id="targetIndicator" class="hidden font-semibold opacity-75">Target: €8.73M</span>
+                        </div>
+                    </div>
+
+                    <!-- Total Volume -->
+                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 card">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-gray-500 text-sm font-medium mb-1">Addressable Flour Vol.</p>
+                                <h3 class="text-2xl font-bold text-gray-800" id="totalVolumeDisplay">0k</h3>
+                            </div>
+                            <div class="bg-green-100 p-2 rounded-lg">
+                                <i class="fa-solid fa-wheat-awn text-green-600 text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Avg Value -->
+                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 card">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-gray-500 text-sm font-medium mb-1">Avg. Value per Ton</p>
+                                <h3 class="text-2xl font-bold text-gray-800" id="valuePerTonDisplay">€0.00</h3>
+                            </div>
+                            <div class="bg-purple-100 p-2 rounded-lg">
+                                <i class="fa-solid fa-tags text-purple-600 text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Chart -->
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                    <h3 class="text-gray-800 font-bold mb-4">Revenue Potential by Category</h3>
+                    <div class="h-64 w-full">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Detailed Table -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                        <h3 class="text-gray-800 font-bold">Category Breakdown</h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Vol (Tons)</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Avg PPM</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Active Sols.</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200" id="breakdownTableBody">
+                                <!-- Rows generated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // --- DATA & CONFIGURATION ---
+
+        // Constants
+        const AUD_TO_EUR_RATE = 2.33; 
+        const TARGET_MARKET_POTENTIAL_EUR = 8734576.1; 
+        
+        // Solution Metadata
+        const SOLUTION_META = {
+            conditioning: { label: "Dough Conditioning", isNew: false },
+            strengthening: { label: "Dough Strengthening", isNew: false },
+            freshness: { label: "Fresh-keeping (Shelf Life)", isNew: false },
+            appearance: { label: "Appealing Appearance", isNew: false },
+            acrylamide: { label: "Acrylamide Reduction", isNew: false },
+            biscuitWeakening: { label: "Biscuits & Gluten Weakening", isNew: false },
+            flourCorrection: { label: "Flour Correction", isNew: false },
+            glutenStrengthening: { label: "Gluten Strengthening", isNew: false },
+            fatReduction: { label: "Fat Reduction", isNew: true },
+            newApps: { label: "New Applications", isNew: true },
+            crispiness: { label: "Crispiness Application", isNew: true }
+        };
+
+        // Prices in EUR
+        const SOLUTION_PRICES_EUR = {
+            conditioning: 22.0 / AUD_TO_EUR_RATE,
+            strengthening: 124.0 / AUD_TO_EUR_RATE,
+            freshness: 108.0 / AUD_TO_EUR_RATE,
+            appearance: 192.0 / AUD_TO_EUR_RATE,
+            acrylamide: 313.0 / AUD_TO_EUR_RATE,
+            biscuitWeakening: 52.0 / AUD_TO_EUR_RATE,
+            flourCorrection: 80.0 / AUD_TO_EUR_RATE,
+            glutenStrengthening: 126.0 / AUD_TO_EUR_RATE,
+            fatReduction: 100.0 / AUD_TO_EUR_RATE,
+            newApps: 100.0 / AUD_TO_EUR_RATE,
+            crispiness: 100.0 / AUD_TO_EUR_RATE
+        };
+
+        const DEFAULT_PPM = {
+            conditioning: 40,
+            freshness: 100,
+            strengthening: 25,
+            flourCorrection: 10,
+            glutenStrengthening: 10,
+            acrylamide: 50,
+            biscuitWeakening: 35,
+            appearance: 30,
+            fatReduction: 0,
+            newApps: 0,
+            crispiness: 0
+        };
+
+        const DEFAULT_SOLUTIONS = {
+            bread: ['conditioning', 'freshness', 'strengthening', 'flourCorrection'],
+            cakes: ['freshness', 'appearance'],
+            pastries: ['conditioning', 'appearance'],
+            chips: ['appearance'],
+            biscuits: ['biscuitWeakening', 'appearance'] 
+        };
+
+        const NEW_KEYS = ['fatReduction', 'newApps', 'crispiness'];
+
+        // Raw Category Data
+        let RAW_CATEGORIES = [
+            { id: 'bread', name: 'Bread', volume: 2270000, flourPct: 0.65, color: 'rgba(59, 130, 246, 0.8)', defaultCAGR: 1.5 },
+            { id: 'cakes', name: 'Cakes', volume: 182500, flourPct: 0.30, color: 'rgba(16, 185, 129, 0.8)', defaultCAGR: 2.0 },
+            { id: 'pastries', name: 'Pastries', volume: 141000, flourPct: 0.50, color: 'rgba(245, 158, 11, 0.8)', defaultCAGR: 2.5 },
+            { id: 'chips', name: 'Chips', volume: 353000, flourPct: 0.50, color: 'rgba(239, 68, 68, 0.8)', defaultCAGR: 3.0 },
+            { id: 'biscuits', name: 'Biscuits', volume: 585000, flourPct: 0.50, color: 'rgba(139, 92, 246, 0.8)', defaultCAGR: 1.8 }
+        ];
+
+        // --- STATE MANAGEMENT ---
+        let state = {
+            activeTab: 'global',
+            currency: 'EUR', 
+            penetration: 20, 
+            globalDosagePct: 20,
+            calibrationFactor: 1.0,
+            projectionYears: 3, // Defaulting to 3 years so CAGR effect is visible
+            categoryData: {} 
+        };
+
+        // Initialize category data
+        RAW_CATEGORIES.forEach(cat => {
+            let availableSolKeys = ['conditioning', 'strengthening', 'freshness', 'appearance', 'acrylamide', 'flourCorrection', 'glutenStrengthening'];
+            if (cat.id === 'biscuits') {
+                availableSolKeys = ['biscuitWeakening', 'strengthening', 'freshness', 'appearance', 'acrylamide', 'flourCorrection'];
+            }
+            availableSolKeys = [...availableSolKeys, ...NEW_KEYS];
+
+            let solutionsObj = {};
+            availableSolKeys.forEach(key => {
+                const isNew = NEW_KEYS.includes(key);
+                solutionsObj[key] = {
+                    active: isNew ? false : DEFAULT_SOLUTIONS[cat.id].includes(key),
+                    ppm: isNew ? 0 : (DEFAULT_PPM[key] || 100),
+                    customPriceEUR: isNew ? (100.0 / AUD_TO_EUR_RATE) : undefined 
+                };
+            });
+
+            state.categoryData[cat.id] = {
+                solutions: solutionsObj,
+                cagr: cat.defaultCAGR
+            };
+        });
+
+        // --- CALIBRATION LOGIC ---
+        function calibrateModel() {
+            let totalUncalibratedRevenue = 0;
+
+            RAW_CATEGORIES.forEach(cat => {
+                const catState = state.categoryData[cat.id];
+                const addressableFlourTons = cat.volume * cat.flourPct; 
+                const flourKg = addressableFlourTons * 1000;
+
+                Object.keys(catState.solutions).forEach(key => {
+                    const sol = catState.solutions[key];
+                    if (!NEW_KEYS.includes(key) && DEFAULT_SOLUTIONS[cat.id].includes(key)) {
+                         const ppm = DEFAULT_PPM[key] || 100;
+                         const price = SOLUTION_PRICES_EUR[key];
+                         totalUncalibratedRevenue += flourKg * (ppm / 1000000) * price;
+                    }
+                });
+            });
+
+            state.calibrationFactor = TARGET_MARKET_POTENTIAL_EUR / totalUncalibratedRevenue;
+        }
+
+        // --- DOM ELEMENTS ---
+        const inputs = {
+            penetration: document.getElementById('penetrationInput'),
+            penetrationDisplay: document.getElementById('penetrationDisplay'),
+            dosage: document.getElementById('dosageInput'),
+            dosageLabel: document.getElementById('dosageLabel'),
+            categoryList: document.getElementById('categoryListContainer'),
+            tabGlobalBtn: document.getElementById('tabGlobalBtn'),
+            tabCategoryBtn: document.getElementById('tabCategoryBtn'),
+            tabGlobalContent: document.getElementById('tabGlobalContent'),
+            tabCategoryContent: document.getElementById('tabCategoryContent'),
+            btnEUR: document.getElementById('btnEUR'),
+            btnAUD: document.getElementById('btnAUD'),
+            targetIndicator: document.getElementById('targetIndicator'),
+            yearsInput: document.getElementById('yearsInput'),
+            yearsDisplay: document.getElementById('yearsDisplay'),
+            cagrList: document.getElementById('cagrListContainer')
+        };
+
+        const outputs = {
+            totalRevenue: document.getElementById('totalRevenueDisplay'),
+            totalVolume: document.getElementById('totalVolumeDisplay'),
+            valuePerTon: document.getElementById('valuePerTonDisplay'),
+            tableBody: document.getElementById('breakdownTableBody')
+        };
+
+        // --- CURRENCY TOGGLE ---
+        function setCurrency(curr) {
+            state.currency = curr;
+            if (curr === 'EUR') {
+                inputs.btnEUR.className = "px-3 py-1 rounded-md text-sm font-medium transition shadow-sm bg-white text-blue-600";
+                inputs.btnAUD.className = "px-3 py-1 rounded-md text-sm font-medium transition text-gray-500 hover:text-gray-700";
+                inputs.targetIndicator.innerText = "Target: €8.73M";
+            } else {
+                inputs.btnAUD.className = "px-3 py-1 rounded-md text-sm font-medium transition shadow-sm bg-white text-blue-600";
+                inputs.btnEUR.className = "px-3 py-1 rounded-md text-sm font-medium transition text-gray-500 hover:text-gray-700";
+                const targetAUD = (TARGET_MARKET_POTENTIAL_EUR * AUD_TO_EUR_RATE / 1000000).toFixed(2);
+                inputs.targetIndicator.innerText = `Target: $${targetAUD}M`;
+            }
+            renderCategoryInputs(); 
+            updateUI();
+        }
+
+        // --- TAB SWITCHING ---
+        function switchTab(tabName) {
+            state.activeTab = tabName;
+            const activeClass = "flex-1 py-4 text-sm text-center transition tab-active";
+            const inactiveClass = "flex-1 py-4 text-sm text-center transition tab-inactive";
+            
+            if (tabName === 'global') {
+                inputs.tabGlobalBtn.className = activeClass;
+                inputs.tabCategoryBtn.className = inactiveClass;
+                inputs.tabGlobalContent.classList.remove('hidden');
+                inputs.tabCategoryContent.classList.add('hidden');
+            } else {
+                inputs.tabGlobalBtn.className = inactiveClass;
+                inputs.tabCategoryBtn.className = activeClass;
+                inputs.tabGlobalContent.classList.add('hidden');
+                inputs.tabCategoryContent.classList.remove('hidden');
+                renderCategoryInputs();
+            }
+        }
+
+        // --- DYNAMIC INPUT GENERATION ---
+        function renderCAGRInputs() {
+            inputs.cagrList.innerHTML = '';
+            RAW_CATEGORIES.forEach(cat => {
+                const cagrVal = state.categoryData[cat.id].cagr;
+                
+                const div = document.createElement('div');
+                div.className = "flex items-center justify-between text-xs";
+                div.innerHTML = `
+                    <div class="flex items-center w-1/3">
+                        <div class="w-2 h-2 rounded-full mr-2" style="background-color: ${cat.color}"></div>
+                        <span class="text-gray-600">${cat.name}</span>
+                    </div>
+                    <div class="w-1/2 flex items-center space-x-2">
+                        <input type="range" min="-5" max="10" step="0.5" value="${cagrVal}" 
+                            class="slider-thumb flex-1 h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                            oninput="updateCAGR('${cat.id}', this.value)">
+                        <span class="w-10 text-right font-medium text-gray-700" id="cagrDisp-${cat.id}">${cagrVal}%</span>
+                    </div>
+                `;
+                inputs.cagrList.appendChild(div);
+            });
+        }
+
+        function updateCAGR(catId, value) {
+            state.categoryData[catId].cagr = parseFloat(value);
+            document.getElementById(`cagrDisp-${catId}`).innerText = value + '%';
+            updateUI(false);
+        }
+
+        function renderCategoryInputs() {
+            inputs.categoryList.innerHTML = '';
+            
+            RAW_CATEGORIES.forEach(cat => {
+                const catState = state.categoryData[cat.id];
+                const solutionsObj = catState.solutions;
+
+                const sortedKeys = Object.keys(solutionsObj).sort((a,b) => {
+                     const aNew = SOLUTION_META[a].isNew ? 1 : 0;
+                     const bNew = SOLUTION_META[b].isNew ? 1 : 0;
+                     return aNew - bNew;
+                });
+
+                let solutionsHtml = sortedKeys.map(key => {
+                    const solData = solutionsObj[key];
+                    const meta = SOLUTION_META[key];
+                    const isNew = meta.isNew;
+                    const isChecked = solData.active ? 'checked' : '';
+
+                    let priceEUR = isNew ? solData.customPriceEUR : SOLUTION_PRICES_EUR[key];
+                    let displayPrice = priceEUR;
+                    let currencySymbol = '€';
+                    
+                    if (state.currency === 'AUD') {
+                        displayPrice = priceEUR * AUD_TO_EUR_RATE;
+                        currencySymbol = '$';
+                    }
+
+                    let priceElement = '';
+                    if (isNew) {
+                         priceElement = `
+                            <div class="flex items-center mt-1" onclick="event.stopPropagation()">
+                                <span class="text-[10px] text-gray-500 mr-1">Price: ${currencySymbol}</span>
+                                <input type="number" 
+                                    value="${displayPrice.toFixed(2)}" 
+                                    onchange="updateSolutionPrice('${cat.id}', '${key}', this.value)"
+                                    class="w-16 text-[10px] border border-gray-300 rounded px-1 py-0.5 focus:border-blue-500 focus:outline-none">
+                                <span class="text-[10px] text-gray-500 ml-1">/kg</span>
+                            </div>
+                         `;
+                    } else {
+                         priceElement = `<span class="text-[10px] text-gray-400">~${currencySymbol}${displayPrice.toFixed(2)}/kg</span>`;
+                    }
+                    
+                    const badge = isNew ? `<span class="ml-2 bg-red-100 text-red-600 text-[9px] font-bold px-1.5 py-0.5 rounded new-badge">NEW</span>` : '';
+                    const bgClass = isNew ? 'bg-red-50 border-red-100' : 'bg-white border-transparent';
+                    const hoverClass = isNew ? 'hover:bg-red-50' : 'hover:bg-gray-50';
+
+                    const sliderHtml = solData.active ? `
+                        <div class="mt-2 pl-6 pr-2 bg-gray-50 rounded-lg py-2 border border-gray-100">
+                            <div class="flex justify-between text-[10px] text-gray-500 mb-1">
+                                <span>PPM: <span class="font-bold text-blue-600">${solData.ppm}</span></span>
+                            </div>
+                            <input type="range" min="0" max="500" value="${solData.ppm}" step="5" 
+                                class="slider-thumb w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                                oninput="updateSolutionPPM('${cat.id}', '${key}', this.value)">
+                            <div class="flex justify-between text-[9px] text-gray-300 mt-1">
+                                <span>0</span><span>250</span><span>500</span>
+                            </div>
+                        </div>
+                    ` : '';
+
+                    return `
+                        <div class="mb-3 pb-3 border-b border-gray-50 last:border-0 last:mb-0 last:pb-0 ${bgClass} rounded-lg p-2 ${hoverClass} transition-colors">
+                            <label class="flex items-start justify-between cursor-pointer">
+                                <div>
+                                    <div class="flex items-center">
+                                        <input type="checkbox" ${isChecked} 
+                                            onchange="toggleCategorySolution('${cat.id}', '${key}', this.checked)"
+                                            class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                        <span class="ml-2 text-xs text-gray-700 font-medium">${meta.label}</span>
+                                        ${badge}
+                                    </div>
+                                    ${isNew ? priceElement : ''}
+                                </div>
+                                ${!isNew ? priceElement : ''}
+                            </label>
+                            ${sliderHtml}
+                        </div>
+                    `;
+                }).join('');
+
+                const div = document.createElement('div');
+                div.className = "bg-white p-4 rounded-xl border border-gray-100 shadow-sm transition hover:shadow-md";
+                div.innerHTML = `
+                    <div class="flex justify-between items-center mb-4 pb-2 border-b border-gray-100 bg-gray-50 -mx-4 -mt-4 px-4 py-3 rounded-t-xl">
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 rounded-full mr-2" style="background-color: ${cat.color}"></div>
+                            <span class="font-bold text-gray-800 text-sm">${cat.name}</span>
+                        </div>
+                        <span class="text-[10px] text-gray-400 uppercase font-semibold tracking-wider">Configure</span>
+                    </div>
+                    <div class="space-y-1">
+                        ${solutionsHtml}
+                    </div>
+                `;
+                inputs.categoryList.appendChild(div);
+            });
+        }
+
+        function updateSolutionPPM(catId, solKey, value) {
+            state.categoryData[catId].solutions[solKey].ppm = parseInt(value);
+            updateUI(false); 
+        }
+
+        function toggleCategorySolution(catId, solKey, isChecked) {
+            state.categoryData[catId].solutions[solKey].active = isChecked;
+            renderCategoryInputs();
+            updateUI();
+        }
+
+        function updateSolutionPrice(catId, solKey, inputValue) {
+            let val = parseFloat(inputValue) || 0;
+            if (state.currency === 'AUD') {
+                val = val / AUD_TO_EUR_RATE;
+            }
+            state.categoryData[catId].solutions[solKey].customPriceEUR = val;
+            updateUI(false); 
+        }
+
+        // --- CHART INITIALIZATION ---
+        let chartInstance = null;
+
+        function initChart() {
+            const ctx = document.getElementById('revenueChart').getContext('2d');
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: RAW_CATEGORIES.map(c => c.name),
+                    datasets: [{
+                        label: 'Potential Revenue',
+                        data: [],
+                        backgroundColor: RAW_CATEGORIES.map(c => c.color),
+                        borderRadius: 6,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) { label += ': '; }
+                                    let val = context.parsed.y;
+                                    let symbol = state.currency === 'EUR' ? '€' : '$';
+                                    if (val !== null) {
+                                        label += symbol + new Intl.NumberFormat('en-US', { maximumSignificantDigits: 3 }).format(val);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { borderDash: [2, 4], color: '#f3f4f6' },
+                            ticks: {
+                                callback: function(value) {
+                                    let symbol = state.currency === 'EUR' ? '€' : '$';
+                                    return symbol + (value / 1000000).toFixed(1) + 'M';
+                                }
+                            }
+                        },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        // --- CALCULATION LOGIC ---
+        function calculate() {
+            let grandTotalRevenue = 0;
+            let grandTotalAddressableFlour = 0;
+            const categoryResults = [];
+
+            RAW_CATEGORIES.forEach(cat => {
+                const catState = state.categoryData[cat.id];
+                
+                // 1. Calibration
+                let calibratedVolume = cat.volume * state.calibrationFactor;
+
+                // 2. Growth Projection
+                // Volume = Base * (1 + CAGR)^Years
+                const cagrDecimal = catState.cagr / 100;
+                const projectedVolume = calibratedVolume * Math.pow((1 + cagrDecimal), state.projectionYears);
+
+                const addressableFlourTons = projectedVolume * cat.flourPct;
+                grandTotalAddressableFlour += addressableFlourTons;
+                const flourKg = addressableFlourTons * 1000;
+
+                let categoryRevenueEUR = 0;
+                let activeCount = 0;
+                let weightedPPMSum = 0;
+
+                Object.keys(catState.solutions).forEach(key => {
+                    const sol = catState.solutions[key];
+                    if (sol.active) {
+                        activeCount++;
+                        let priceEUR = 0;
+                        if (SOLUTION_META[key].isNew) {
+                             priceEUR = sol.customPriceEUR;
+                        } else {
+                             priceEUR = SOLUTION_PRICES_EUR[key];
+                        }
+
+                        const solRevenue = flourKg * (sol.ppm / 1000000) * priceEUR;
+                        categoryRevenueEUR += solRevenue;
+                        weightedPPMSum += sol.ppm;
+                    }
+                });
+                
+                let potentialRevenue = categoryRevenueEUR * (state.penetration / 100);
+
+                if (state.currency === 'AUD') {
+                    potentialRevenue *= AUD_TO_EUR_RATE;
+                }
+
+                grandTotalRevenue += potentialRevenue;
+                categoryResults.push({
+                    ...cat,
+                    revenue: potentialRevenue,
+                    addressableFlour: addressableFlourTons,
+                    avgPPM: activeCount > 0 ? Math.round(weightedPPMSum / activeCount) : 0,
+                    activeSolutionsCount: activeCount
+                });
+            });
+
+            return {
+                totalRevenue: grandTotalRevenue,
+                totalAddressableFlour: grandTotalAddressableFlour,
+                results: categoryResults
+            };
+        }
+
+        // --- UI UPDATE FUNCTIONS ---
+        function updateUI(shouldUpdateInputText = true) {
+            const data = calculate();
+            
+            const locale = state.currency === 'EUR' ? 'de-DE' : 'en-AU'; 
+            const fmtCurrency = new Intl.NumberFormat(locale, { style: 'currency', currency: state.currency, minimumFractionDigits: 0, maximumFractionDigits: 0 });
+            const fmtNumber = new Intl.NumberFormat('en-US', { notation: "compact", compactDisplay: "short" });
+
+            // Update KPI Cards
+            outputs.totalRevenue.innerText = fmtCurrency.format(data.totalRevenue);
+            outputs.totalVolume.innerText = fmtNumber.format(data.totalAddressableFlour);
+            
+            const penetratedVolume = data.totalAddressableFlour * (state.penetration/100);
+            const valuePerTon = penetratedVolume > 0 ? (data.totalRevenue / penetratedVolume) : 0;
+            outputs.valuePerTon.innerText = fmtCurrency.format(valuePerTon);
+
+            if (state.penetration == 100 && state.projectionYears == 0) {
+                inputs.targetIndicator.classList.remove('hidden');
+            } else {
+                inputs.targetIndicator.classList.add('hidden');
+            }
+
+            // Update Chart
+            chartInstance.data.datasets[0].label = `Potential Revenue (${state.currency})`;
+            chartInstance.data.datasets[0].data = data.results.map(r => r.revenue);
+            chartInstance.update();
+
+            // Update Table
+            outputs.tableBody.innerHTML = '';
+            data.results.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 h-2.5 w-2.5 rounded-full mr-2" style="background-color: ${row.color}"></div>
+                            <div class="text-sm font-medium text-gray-900">${row.name}</div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-500">
+                        ${row.volume.toLocaleString(undefined, {maximumFractionDigits:0})}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-blue-600 font-medium">
+                        ~${row.avgPPM} ppm
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-500">
+                        ${row.activeSolutionsCount}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-bold text-gray-900">
+                        ${fmtCurrency.format(row.revenue)}
+                    </td>
+                `;
+                outputs.tableBody.appendChild(tr);
+            });
+        }
+
+        // --- EVENT LISTENERS ---
+        function attachListeners() {
+            inputs.penetration.addEventListener('input', (e) => {
+                state.penetration = parseInt(e.target.value);
+                inputs.penetrationDisplay.innerText = state.penetration + '%';
+                updateUI();
+            });
+
+            inputs.dosage.addEventListener('input', (e) => {
+                const pct = parseInt(e.target.value);
+                state.globalDosagePct = pct;
+                const ppm = Math.round((pct / 100) * 500);
+                inputs.dosageLabel.innerText = `${pct}% (~${ppm} ppm)`;
+                
+                RAW_CATEGORIES.forEach(cat => {
+                    Object.keys(state.categoryData[cat.id].solutions).forEach(solKey => {
+                        state.categoryData[cat.id].solutions[solKey].ppm = ppm;
+                    });
+                });
+                
+                if (state.activeTab === 'category') renderCategoryInputs();
+                updateUI();
+            });
+
+            inputs.yearsInput.addEventListener('input', (e) => {
+                state.projectionYears = parseInt(e.target.value);
+                inputs.yearsDisplay.innerText = `+${state.projectionYears} Years`;
+                updateUI();
+            });
+        }
+
+        function resetDefaults() {
+            state.penetration = 20;
+            state.globalDosagePct = 20;
+            state.currency = 'EUR';
+            state.projectionYears = 3;
+            
+            // Reset Category Data
+            RAW_CATEGORIES.forEach(cat => {
+                let availableSolKeys = ['conditioning', 'strengthening', 'freshness', 'appearance', 'acrylamide', 'flourCorrection', 'glutenStrengthening'];
+                if (cat.id === 'biscuits') {
+                    availableSolKeys = ['biscuitWeakening', 'strengthening', 'freshness', 'appearance', 'acrylamide', 'flourCorrection'];
+                }
+                
+                availableSolKeys = [...availableSolKeys, ...NEW_KEYS];
+
+                let solutionsObj = {};
+                availableSolKeys.forEach(key => {
+                    const isNew = NEW_KEYS.includes(key);
+                    solutionsObj[key] = {
+                        active: isNew ? false : DEFAULT_SOLUTIONS[cat.id].includes(key),
+                        ppm: isNew ? 0 : (DEFAULT_PPM[key] || 100),
+                        customPriceEUR: isNew ? (100.0 / AUD_TO_EUR_RATE) : undefined
+                    };
+                });
+                state.categoryData[cat.id] = { solutions: solutionsObj, cagr: cat.defaultCAGR };
+            });
+
+            inputs.penetration.value = 20;
+            inputs.penetrationDisplay.innerText = "20%";
+            inputs.dosage.value = 20;
+            inputs.dosageLabel.innerText = "Custom Mix";
+            inputs.yearsInput.value = 3;
+            inputs.yearsDisplay.innerText = "+3 Years";
+            setCurrency('EUR'); 
+
+            switchTab('global');
+            renderCAGRInputs();
+            updateUI();
+        }
+
+        // --- INITIALIZE ---
+        window.addEventListener('DOMContentLoaded', () => {
+            initChart();
+            calibrateModel();
+            renderCAGRInputs();
+            renderCategoryInputs();
+            attachListeners();
+            updateUI();
+        });
+
+    </script>
+</body>
+</html>
