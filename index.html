@@ -14,7 +14,6 @@
     <style>
         body {
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            /* Updated to very light moss green */
             background-color: #f1f7f0;
         }
         .card {
@@ -103,6 +102,23 @@
         .new-badge {
             animation: pulse-soft 2s infinite;
         }
+        /* Input Styling */
+        .input-bare {
+            background: transparent;
+            border-bottom: 1px solid #e5e7eb;
+            border-top: none;
+            border-left: none;
+            border-right: none;
+            border-radius: 0;
+            padding: 4px 0;
+            width: 100%;
+            text-align: right;
+            transition: border-color 0.2s;
+        }
+        .input-bare:focus {
+            outline: none;
+            border-bottom-color: #3b82f6;
+        }
     </style>
 </head>
 <body class="text-gray-800">
@@ -124,11 +140,16 @@
                         <button id="btnAUD" onclick="setCurrency('AUD')" class="px-3 py-1 rounded-md text-sm font-medium transition text-gray-500 hover:text-gray-700">$ AUD</button>
                     </div>
 
+                    <!-- Assumptions Button -->
+                    <button onclick="toggleAssumptionsView()" id="btnAssumptions" class="text-gray-600 hover:text-blue-600 text-sm font-medium transition flex items-center">
+                        <i class="fa-solid fa-pen-to-square mr-1"></i> Edit Assumptions
+                    </button>
+
                     <button onclick="resetDefaults()" class="text-gray-500 hover:text-blue-600 text-sm font-medium transition">
                         <i class="fa-solid fa-rotate-left mr-1"></i> Reset
                     </button>
                     <div class="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold">
-                        v2.9.1 Moss
+                        v3.1 Fixed PPM
                     </div>
                 </div>
             </div>
@@ -137,201 +158,264 @@
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
-        <!-- Main Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <!-- DASHBOARD VIEW -->
+        <div id="dashboardView" class="block">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
-            <!-- LEFT COLUMN: Inputs -->
-            <div class="lg:col-span-5 space-y-6">
-                
-                <!-- Strategy Tabs -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-[800px]">
-                    <!-- Tab Headers -->
-                    <div class="flex border-b border-gray-100 flex-shrink-0">
-                        <button id="tabGlobalBtn" class="flex-1 py-4 text-sm text-center transition tab-active" onclick="switchTab('global')">
-                            <i class="fa-solid fa-earth-americas mr-2"></i>Regional Overview
-                        </button>
-                        <button id="tabCategoryBtn" class="flex-1 py-4 text-sm text-center transition tab-inactive" onclick="switchTab('category')">
-                            <i class="fa-solid fa-sliders mr-2"></i>By Category & PPM
-                        </button>
-                    </div>
-
-                    <!-- Tab Content: Global -->
-                    <div id="tabGlobalContent" class="p-6 flex-1 overflow-y-auto">
-                        <h2 class="text-sm font-bold text-gray-900 mb-4 uppercase tracking-wide text-xs text-gray-400">
-                            Regional Adjustments
-                        </h2>
-                        
-                        <!-- Sensitivity Adjustment -->
-                        <div class="mb-8">
-                            <div class="flex justify-between mb-2">
-                                <label class="text-sm font-medium text-gray-700 tooltip">
-                                    Sensitivity Adjustment
-                                    <span class="tooltiptext">Percentage of market captured across ALL categories. 100% = Full Potential.</span>
-                                    <i class="fa-regular fa-circle-question text-gray-400 ml-1 text-xs"></i>
-                                </label>
-                                <span id="penetrationDisplay" class="text-sm font-bold text-blue-600">20%</span>
-                            </div>
-                            <input type="range" min="0" max="100" value="20" class="slider-thumb w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" id="penetrationInput">
+                <!-- LEFT COLUMN: Inputs -->
+                <div class="lg:col-span-5 space-y-6">
+                    
+                    <!-- Strategy Tabs -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-[800px]">
+                        <!-- Tab Headers -->
+                        <div class="flex border-b border-gray-100 flex-shrink-0">
+                            <button id="tabGlobalBtn" class="flex-1 py-4 text-sm text-center transition tab-active" onclick="switchTab('global')">
+                                <i class="fa-solid fa-earth-americas mr-2"></i>Regional Overview
+                            </button>
+                            <button id="tabCategoryBtn" class="flex-1 py-4 text-sm text-center transition tab-inactive" onclick="switchTab('category')">
+                                <i class="fa-solid fa-sliders mr-2"></i>By Category & PPM
+                            </button>
                         </div>
 
-                        <!-- Global Usage Intensity -->
-                        <div class="mb-8">
-                            <div class="flex justify-between mb-2">
-                                <label class="text-sm font-medium text-gray-700 tooltip">
-                                    Regional Dosage Intensity (%)
-                                    <span class="tooltiptext">Overrides detailed settings. 0% = 0ppm, 100% = 500ppm.</span>
-                                    <i class="fa-regular fa-circle-question text-gray-400 ml-1 text-xs"></i>
-                                </label>
-                                <span id="dosageLabel" class="text-sm font-bold text-blue-600">Custom Mix</span>
-                            </div>
-                            <input type="range" min="0" max="100" value="20" step="1" class="slider-thumb w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" id="dosageInput">
-                            <div class="flex justify-between text-xs text-gray-400 mt-1">
-                                <span>0%</span>
-                                <span>50%</span>
-                                <span>100%</span>
-                            </div>
-                        </div>
-
-                        <!-- Volume Growth Projection Section -->
-                        <div class="mb-8 pt-6 border-t border-gray-100">
-                            <h3 class="text-sm font-bold text-gray-900 mb-4 flex items-center">
-                                <i class="fa-solid fa-chart-line text-green-500 mr-2"></i>Market Volume Projection
-                            </h3>
-
-                            <!-- Years Slider -->
-                            <div class="mb-5 bg-green-50 p-3 rounded-lg border border-green-100">
-                                <div class="flex justify-between mb-2">
-                                    <label class="text-xs font-bold text-green-800">Projection Timeline</label>
-                                    <span id="yearsDisplay" class="text-xs font-bold text-green-700">+3 Years</span>
-                                </div>
-                                <input type="range" min="0" max="10" value="3" step="1" 
-                                    class="slider-thumb w-full h-2 bg-green-200 rounded-lg appearance-none cursor-pointer" 
-                                    id="yearsInput">
-                                <div class="flex justify-between text-[9px] text-green-600 mt-1">
-                                    <span>Current</span>
-                                    <span>+5 Years</span>
-                                    <span>+10 Years</span>
-                                </div>
-                            </div>
-
-                            <!-- CAGR Sliders Container -->
-                            <div class="space-y-3" id="cagrListContainer">
-                                <!-- JS Injects CAGR sliders here -->
-                            </div>
-                        </div>
-
-                        <!-- Info Box -->
-                        <div class="p-3 bg-blue-50 rounded-lg border border-blue-100 text-xs text-blue-700 mt-6">
-                            <div class="flex items-start mb-1">
-                                <i class="fa-solid fa-bullseye mt-0.5 mr-2"></i>
-                                <span><strong>Target Calibration:</strong> The model is calibrated so that 100% Sensitivity equals exactly <strong>€8,734,576</strong> (Baseline).</span>
-                            </div>
-                            <div class="flex items-start">
-                                <i class="fa-solid fa-flask mt-0.5 mr-2"></i>
-                                <span><strong>New Solutions:</strong> Check "By Category" to enable fat reduction, crispiness, etc.</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Tab Content: Category Specific -->
-                    <div id="tabCategoryContent" class="hidden flex-1 flex flex-col h-full bg-gray-50">
-                        <div class="p-4 border-b border-gray-200 bg-white shadow-sm z-10">
-                             <h2 class="text-sm font-bold text-gray-900 uppercase tracking-wide text-xs text-gray-400">
-                                Detailed Configuration
+                        <!-- Tab Content: Global -->
+                        <div id="tabGlobalContent" class="p-6 flex-1 overflow-y-auto">
+                            <h2 class="text-sm font-bold text-gray-900 mb-4 uppercase tracking-wide text-xs text-gray-400">
+                                Regional Adjustments
                             </h2>
-                            <p class="text-xs text-gray-500 mt-1">Enable "New" solutions and adjust pricing per category below.</p>
+                            
+                            <!-- Sensitivity Adjustment -->
+                            <div class="mb-8">
+                                <div class="flex justify-between mb-2">
+                                    <label class="text-sm font-medium text-gray-700 tooltip">
+                                        Sensitivity Adjustment
+                                        <span class="tooltiptext">Percentage of market captured across ALL categories. 100% = Full Potential.</span>
+                                        <i class="fa-regular fa-circle-question text-gray-400 ml-1 text-xs"></i>
+                                    </label>
+                                    <span id="penetrationDisplay" class="text-sm font-bold text-blue-600">20%</span>
+                                </div>
+                                <input type="range" min="0" max="100" value="20" class="slider-thumb w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" id="penetrationInput">
+                            </div>
+
+                            <!-- Global Usage Intensity -->
+                            <div class="mb-8">
+                                <div class="flex justify-between mb-2">
+                                    <label class="text-sm font-medium text-gray-700 tooltip">
+                                        Regional Dosage Intensity (%)
+                                        <span class="tooltiptext">Overrides detailed settings. 0% = 0ppm, 100% = 500ppm.</span>
+                                        <i class="fa-regular fa-circle-question text-gray-400 ml-1 text-xs"></i>
+                                    </label>
+                                    <span id="dosageLabel" class="text-sm font-bold text-blue-600">Custom Mix</span>
+                                </div>
+                                <input type="range" min="0" max="100" value="20" step="1" class="slider-thumb w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" id="dosageInput">
+                                <div class="flex justify-between text-xs text-gray-400 mt-1">
+                                    <span>0%</span>
+                                    <span>50%</span>
+                                    <span>100%</span>
+                                </div>
+                            </div>
+
+                            <!-- Volume Growth Projection Section -->
+                            <div class="mb-8 pt-6 border-t border-gray-100">
+                                <h3 class="text-sm font-bold text-gray-900 mb-4 flex items-center">
+                                    <i class="fa-solid fa-chart-line text-green-500 mr-2"></i>Market Volume Projection
+                                </h3>
+
+                                <!-- Years Slider -->
+                                <div class="mb-5 bg-green-50 p-3 rounded-lg border border-green-100">
+                                    <div class="flex justify-between mb-2">
+                                        <label class="text-xs font-bold text-green-800">Projection Timeline</label>
+                                        <span id="yearsDisplay" class="text-xs font-bold text-green-700">+3 Years</span>
+                                    </div>
+                                    <input type="range" min="0" max="10" value="3" step="1" 
+                                        class="slider-thumb w-full h-2 bg-green-200 rounded-lg appearance-none cursor-pointer" 
+                                        id="yearsInput">
+                                    <div class="flex justify-between text-[9px] text-green-600 mt-1">
+                                        <span>Current</span>
+                                        <span>+5 Years</span>
+                                        <span>+10 Years</span>
+                                    </div>
+                                </div>
+
+                                <!-- CAGR Sliders Container -->
+                                <div class="space-y-3" id="cagrListContainer">
+                                    <!-- JS Injects CAGR sliders here -->
+                                </div>
+                            </div>
+
+                            <!-- Info Box -->
+                            <div class="p-3 bg-blue-50 rounded-lg border border-blue-100 text-xs text-blue-700 mt-6">
+                                <div class="flex items-start mb-1">
+                                    <i class="fa-solid fa-bullseye mt-0.5 mr-2"></i>
+                                    <span><strong>Target Calibration:</strong> The model is calibrated so that 100% Sensitivity equals exactly <strong>€8,734,576</strong> (Baseline).</span>
+                                </div>
+                                <div class="flex items-start">
+                                    <i class="fa-solid fa-flask mt-0.5 mr-2"></i>
+                                    <span><strong>New Solutions:</strong> Check "By Category" to enable fat reduction, crispiness, etc.</span>
+                                </div>
+                            </div>
                         </div>
-                        
-                        <div class="overflow-y-auto custom-scroll p-4 space-y-4 flex-1" id="categoryListContainer">
-                            <!-- JS will inject category cards here -->
+
+                        <!-- Tab Content: Category Specific -->
+                        <div id="tabCategoryContent" class="hidden flex-1 flex flex-col h-full bg-gray-50">
+                            <div class="p-4 border-b border-gray-200 bg-white shadow-sm z-10">
+                                <h2 class="text-sm font-bold text-gray-900 uppercase tracking-wide text-xs text-gray-400">
+                                    Detailed Configuration
+                                </h2>
+                                <p class="text-xs text-gray-500 mt-1">Enable "New" solutions and adjust pricing per category below.</p>
+                            </div>
+                            
+                            <div class="overflow-y-auto custom-scroll p-4 space-y-4 flex-1" id="categoryListContainer">
+                                <!-- JS will inject category cards here -->
+                            </div>
                         </div>
                     </div>
+
                 </div>
 
-            </div>
+                <!-- RIGHT COLUMN: Output & Charts -->
+                <div class="lg:col-span-7 space-y-6">
 
-            <!-- RIGHT COLUMN: Output & Charts -->
-            <div class="lg:col-span-7 space-y-6">
-
-                <!-- KPI Cards -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- Total Revenue -->
-                    <div class="bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl shadow-lg p-6 text-white card md:col-span-2">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <p class="text-blue-100 text-sm font-medium mb-1">Total Potential Revenue</p>
-                                <h3 class="text-4xl font-bold" id="totalRevenueDisplay">€0.00</h3>
+                    <!-- KPI Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Total Revenue -->
+                        <div class="bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl shadow-lg p-6 text-white card md:col-span-2">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-blue-100 text-sm font-medium mb-1">Total Potential Revenue</p>
+                                    <h3 class="text-4xl font-bold" id="totalRevenueDisplay">€0.00</h3>
+                                </div>
+                                <div class="bg-blue-500 bg-opacity-30 p-3 rounded-lg">
+                                    <i class="fa-solid fa-sack-dollar text-2xl"></i>
+                                </div>
                             </div>
-                            <div class="bg-blue-500 bg-opacity-30 p-3 rounded-lg">
-                                <i class="fa-solid fa-sack-dollar text-2xl"></i>
+                            <div class="mt-4 text-blue-200 text-xs flex justify-between">
+                                <span>Based on current Sensitivity & Mix</span>
+                                <span id="targetIndicator" class="hidden font-semibold opacity-75">Target: €8.73M</span>
                             </div>
                         </div>
-                        <div class="mt-4 text-blue-200 text-xs flex justify-between">
-                            <span>Based on current Sensitivity & Mix</span>
-                            <span id="targetIndicator" class="hidden font-semibold opacity-75">Target: €8.73M</span>
+
+                        <!-- Total Volume -->
+                        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 card">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-gray-500 text-sm font-medium mb-1">Addressable Flour Vol.</p>
+                                    <h3 class="text-2xl font-bold text-gray-800" id="totalVolumeDisplay">0k</h3>
+                                </div>
+                                <div class="bg-green-100 p-2 rounded-lg">
+                                    <i class="fa-solid fa-wheat-awn text-green-600 text-xl"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Avg Value -->
+                        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 card">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-gray-500 text-sm font-medium mb-1">Avg. Value per Ton</p>
+                                    <h3 class="text-2xl font-bold text-gray-800" id="valuePerTonDisplay">€0.00</h3>
+                                </div>
+                                <div class="bg-purple-100 p-2 rounded-lg">
+                                    <i class="fa-solid fa-tags text-purple-600 text-xl"></i>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Total Volume -->
-                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 card">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <p class="text-gray-500 text-sm font-medium mb-1">Addressable Flour Vol.</p>
-                                <h3 class="text-2xl font-bold text-gray-800" id="totalVolumeDisplay">0k</h3>
-                            </div>
-                            <div class="bg-green-100 p-2 rounded-lg">
-                                <i class="fa-solid fa-wheat-awn text-green-600 text-xl"></i>
-                            </div>
+                    <!-- Main Chart -->
+                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                        <h3 class="text-gray-800 font-bold mb-4">Revenue Potential by Category</h3>
+                        <div class="h-64 w-full">
+                            <canvas id="revenueChart"></canvas>
                         </div>
                     </div>
 
-                    <!-- Avg Value -->
-                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 card">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <p class="text-gray-500 text-sm font-medium mb-1">Avg. Value per Ton</p>
-                                <h3 class="text-2xl font-bold text-gray-800" id="valuePerTonDisplay">€0.00</h3>
-                            </div>
-                            <div class="bg-purple-100 p-2 rounded-lg">
-                                <i class="fa-solid fa-tags text-purple-600 text-xl"></i>
-                            </div>
+                    <!-- Detailed Table -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                            <h3 class="text-gray-800 font-bold">Category Breakdown</h3>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Vol (Tons)</th>
+                                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Avg PPM</th>
+                                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Active Sols.</th>
+                                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200" id="breakdownTableBody">
+                                    <!-- Rows generated by JS -->
+                                </tbody>
+                            </table>
                         </div>
                     </div>
+
                 </div>
-
-                <!-- Main Chart -->
-                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-                    <h3 class="text-gray-800 font-bold mb-4">Revenue Potential by Category</h3>
-                    <div class="h-64 w-full">
-                        <canvas id="revenueChart"></canvas>
-                    </div>
-                </div>
-
-                <!-- Detailed Table -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
-                        <h3 class="text-gray-800 font-bold">Category Breakdown</h3>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Vol (Tons)</th>
-                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Avg PPM</th>
-                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Active Sols.</th>
-                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200" id="breakdownTableBody">
-                                <!-- Rows generated by JS -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
             </div>
         </div>
+
+        <!-- ASSUMPTIONS VIEW -->
+        <div id="assumptionsView" class="hidden">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+                <div class="flex items-center justify-between mb-8">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-900">Model Assumptions</h2>
+                        <p class="text-gray-500 text-sm mt-1">Edit the base data driving the calculator. Changes are saved automatically.</p>
+                    </div>
+                    <button onclick="toggleAssumptionsView()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition">
+                        Back to Dashboard
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+                    
+                    <!-- Volume Assumptions -->
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                            <i class="fa-solid fa-layer-group text-blue-500 mr-2"></i> Category Volumes
+                        </h3>
+                        <div class="overflow-hidden rounded-lg border border-gray-200">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
+                                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Flour %</th>
+                                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Annual Volume (Tons)</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200" id="assumptionsVolumeBody">
+                                    <!-- JS Generated -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Pricing Assumptions -->
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                            <i class="fa-solid fa-tags text-green-500 mr-2"></i> Bio-Solution Pricing (Avg)
+                        </h3>
+                        <div class="overflow-hidden rounded-lg border border-gray-200">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Solution Type</th>
+                                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Avg Price / Kg <span id="priceCurrHeader"></span></th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200" id="assumptionsPriceBody">
+                                    <!-- JS Generated -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <!-- JAVASCRIPT LOGIC -->
@@ -357,8 +441,8 @@
             crispiness: { label: "Crispiness Application", isNew: true }
         };
 
-        // Prices in EUR
-        const SOLUTION_PRICES_EUR = {
+        // Mutable State for Prices (Stored in EUR)
+        let BASE_PRICES_EUR = {
             conditioning: 22.0 / AUD_TO_EUR_RATE,
             strengthening: 124.0 / AUD_TO_EUR_RATE,
             freshness: 108.0 / AUD_TO_EUR_RATE,
@@ -396,8 +480,8 @@
 
         const NEW_KEYS = ['fatReduction', 'newApps', 'crispiness'];
 
-        // Raw Category Data
-        let RAW_CATEGORIES = [
+        // Mutable Category Data (Used as Base)
+        let CATEGORY_BASE = [
             { id: 'bread', name: 'Bread', volume: 2270000, flourPct: 0.65, color: 'rgba(59, 130, 246, 0.8)', defaultCAGR: 1.5 },
             { id: 'cakes', name: 'Cakes', volume: 182500, flourPct: 0.30, color: 'rgba(16, 185, 129, 0.8)', defaultCAGR: 2.0 },
             { id: 'pastries', name: 'Pastries', volume: 141000, flourPct: 0.50, color: 'rgba(245, 158, 11, 0.8)', defaultCAGR: 2.5 },
@@ -407,17 +491,18 @@
 
         // --- STATE MANAGEMENT ---
         let state = {
+            view: 'dashboard', // dashboard | assumptions
             activeTab: 'global',
             currency: 'EUR', 
             penetration: 20, 
             globalDosagePct: 20,
             calibrationFactor: 1.0,
-            projectionYears: 3, // Defaulting to 3 years so CAGR effect is visible
-            categoryData: {} 
+            projectionYears: 3, 
+            categoryData: {} // Holds current session state (active/inactive/ppm/custom prices)
         };
 
-        // Initialize category data
-        RAW_CATEGORIES.forEach(cat => {
+        // Initialize category data structure
+        CATEGORY_BASE.forEach(cat => {
             let availableSolKeys = ['conditioning', 'strengthening', 'freshness', 'appearance', 'acrylamide', 'flourCorrection', 'glutenStrengthening'];
             if (cat.id === 'biscuits') {
                 availableSolKeys = ['biscuitWeakening', 'strengthening', 'freshness', 'appearance', 'acrylamide', 'flourCorrection'];
@@ -430,7 +515,7 @@
                 solutionsObj[key] = {
                     active: isNew ? false : DEFAULT_SOLUTIONS[cat.id].includes(key),
                     ppm: isNew ? 0 : (DEFAULT_PPM[key] || 100),
-                    customPriceEUR: isNew ? (100.0 / AUD_TO_EUR_RATE) : undefined 
+                    customPriceEUR: undefined // Will inherit from BASE_PRICES_EUR if undefined
                 };
             });
 
@@ -444,16 +529,18 @@
         function calibrateModel() {
             let totalUncalibratedRevenue = 0;
 
-            RAW_CATEGORIES.forEach(cat => {
-                const catState = state.categoryData[cat.id];
+            CATEGORY_BASE.forEach(cat => {
                 const addressableFlourTons = cat.volume * cat.flourPct; 
                 const flourKg = addressableFlourTons * 1000;
 
+                // Calibrate based on defaults
+                const catState = state.categoryData[cat.id]; // Access solutions list
+                
                 Object.keys(catState.solutions).forEach(key => {
-                    const sol = catState.solutions[key];
+                    // Only count defaults
                     if (!NEW_KEYS.includes(key) && DEFAULT_SOLUTIONS[cat.id].includes(key)) {
                          const ppm = DEFAULT_PPM[key] || 100;
-                         const price = SOLUTION_PRICES_EUR[key];
+                         const price = BASE_PRICES_EUR[key];
                          totalUncalibratedRevenue += flourKg * (ppm / 1000000) * price;
                     }
                 });
@@ -478,7 +565,15 @@
             targetIndicator: document.getElementById('targetIndicator'),
             yearsInput: document.getElementById('yearsInput'),
             yearsDisplay: document.getElementById('yearsDisplay'),
-            cagrList: document.getElementById('cagrListContainer')
+            cagrList: document.getElementById('cagrListContainer'),
+            // Views
+            dashboardView: document.getElementById('dashboardView'),
+            assumptionsView: document.getElementById('assumptionsView'),
+            btnAssumptions: document.getElementById('btnAssumptions'),
+            // Assumptions Tables
+            volBody: document.getElementById('assumptionsVolumeBody'),
+            priceBody: document.getElementById('assumptionsPriceBody'),
+            priceCurrHeader: document.getElementById('priceCurrHeader')
         };
 
         const outputs = {
@@ -487,6 +582,91 @@
             valuePerTon: document.getElementById('valuePerTonDisplay'),
             tableBody: document.getElementById('breakdownTableBody')
         };
+
+        // --- VIEW TOGGLE ---
+        function toggleAssumptionsView() {
+            if (state.view === 'dashboard') {
+                state.view = 'assumptions';
+                inputs.dashboardView.classList.add('hidden');
+                inputs.assumptionsView.classList.remove('hidden');
+                inputs.btnAssumptions.innerHTML = '<i class="fa-solid fa-chart-line mr-1"></i> Dashboard';
+                renderAssumptions();
+            } else {
+                state.view = 'dashboard';
+                inputs.assumptionsView.classList.add('hidden');
+                inputs.dashboardView.classList.remove('hidden');
+                inputs.btnAssumptions.innerHTML = '<i class="fa-solid fa-pen-to-square mr-1"></i> Edit Assumptions';
+                updateUI(); // Refresh dash with new data
+            }
+        }
+
+        // --- RENDER ASSUMPTIONS ---
+        function renderAssumptions() {
+            // 1. Volumes Table
+            inputs.volBody.innerHTML = '';
+            CATEGORY_BASE.forEach((cat, idx) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="px-4 py-3 text-sm font-medium text-gray-900 flex items-center">
+                        <div class="w-2 h-2 rounded-full mr-2" style="background-color: ${cat.color}"></div>
+                        ${cat.name}
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                        <input type="number" step="0.01" value="${cat.flourPct}" 
+                            class="input-bare text-sm font-medium text-gray-700"
+                            onchange="updateAssumptionVolume(${idx}, 'flourPct', this.value)">
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                        <input type="number" value="${cat.volume}" 
+                            class="input-bare text-sm font-bold text-blue-600"
+                            onchange="updateAssumptionVolume(${idx}, 'volume', this.value)">
+                    </td>
+                `;
+                inputs.volBody.appendChild(tr);
+            });
+
+            // 2. Prices Table
+            inputs.priceBody.innerHTML = '';
+            inputs.priceCurrHeader.innerText = `(${state.currency})`;
+            
+            Object.keys(BASE_PRICES_EUR).forEach(key => {
+                const meta = SOLUTION_META[key];
+                // Convert stored EUR to display currency
+                let displayPrice = BASE_PRICES_EUR[key];
+                if (state.currency === 'AUD') displayPrice *= AUD_TO_EUR_RATE;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="px-4 py-3 text-sm text-gray-700">
+                        ${meta.label} ${meta.isNew ? '<span class="text-xs text-red-500 font-bold ml-1">NEW</span>' : ''}
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                        <input type="number" step="0.01" value="${displayPrice.toFixed(2)}" 
+                            class="input-bare text-sm font-medium text-gray-900"
+                            onchange="updateAssumptionPrice('${key}', this.value)">
+                    </td>
+                `;
+                inputs.priceBody.appendChild(tr);
+            });
+        }
+
+        // --- UPDATE ASSUMPTION LOGIC ---
+        function updateAssumptionVolume(catIdx, field, value) {
+            const val = parseFloat(value) || 0;
+            CATEGORY_BASE[catIdx][field] = val;
+            // Note: We do NOT re-calibrate automatically here to respect the "edit" logic?
+            // Actually, if they change base volume, the target of 8.7M is for the ORIGINAL baseline.
+            // So we keep the OLD calibration factor to allow the model to grow/shrink based on edits.
+        }
+
+        function updateAssumptionPrice(key, value) {
+            let val = parseFloat(value) || 0;
+            // Convert Input Currency -> Store as EUR
+            if (state.currency === 'AUD') {
+                val = val / AUD_TO_EUR_RATE;
+            }
+            BASE_PRICES_EUR[key] = val;
+        }
 
         // --- CURRENCY TOGGLE ---
         function setCurrency(curr) {
@@ -501,6 +681,9 @@
                 const targetAUD = (TARGET_MARKET_POTENTIAL_EUR * AUD_TO_EUR_RATE / 1000000).toFixed(2);
                 inputs.targetIndicator.innerText = `Target: $${targetAUD}M`;
             }
+            // Re-render inputs if on assumption page
+            if (state.view === 'assumptions') renderAssumptions();
+            // Re-render dash controls
             renderCategoryInputs(); 
             updateUI();
         }
@@ -528,7 +711,7 @@
         // --- DYNAMIC INPUT GENERATION ---
         function renderCAGRInputs() {
             inputs.cagrList.innerHTML = '';
-            RAW_CATEGORIES.forEach(cat => {
+            CATEGORY_BASE.forEach(cat => {
                 const cagrVal = state.categoryData[cat.id].cagr;
                 
                 const div = document.createElement('div');
@@ -558,7 +741,7 @@
         function renderCategoryInputs() {
             inputs.categoryList.innerHTML = '';
             
-            RAW_CATEGORIES.forEach(cat => {
+            CATEGORY_BASE.forEach(cat => {
                 const catState = state.categoryData[cat.id];
                 const solutionsObj = catState.solutions;
 
@@ -574,7 +757,19 @@
                     const isNew = meta.isNew;
                     const isChecked = solData.active ? 'checked' : '';
 
-                    let priceEUR = isNew ? solData.customPriceEUR : SOLUTION_PRICES_EUR[key];
+                    // Get Price from Global State (or custom override if specific logic existed, but we simplified)
+                    let priceEUR = BASE_PRICES_EUR[key];
+                    
+                    // If user manually overrode price in detailed config, we could handle it, 
+                    // but for v3.0 Assumptions logic, the Assumption Tab is the master price list.
+                    // However, for "New" solutions we allowed custom inputs in v2.7. 
+                    // Let's reconcile: If customPriceEUR exists in state, use it? 
+                    // Better UX: Assumptions Tab sets the "Base Price". Detailed slider just sets PPM.
+                    // But v2.7 added price editing here. Let's keep v2.7 logic for New items to be safe.
+                    if (isNew && solData.customPriceEUR !== undefined) {
+                        priceEUR = solData.customPriceEUR; 
+                    }
+
                     let displayPrice = priceEUR;
                     let currencySymbol = '€';
                     
@@ -606,7 +801,7 @@
                     const sliderHtml = solData.active ? `
                         <div class="mt-2 pl-6 pr-2 bg-gray-50 rounded-lg py-2 border border-gray-100">
                             <div class="flex justify-between text-[10px] text-gray-500 mb-1">
-                                <span>PPM: <span class="font-bold text-blue-600">${solData.ppm}</span></span>
+                                <span>PPM: <span id="ppm-disp-${cat.id}-${key}" class="font-bold text-blue-600">${solData.ppm}</span></span>
                             </div>
                             <input type="range" min="0" max="500" value="${solData.ppm}" step="5" 
                                 class="slider-thumb w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer"
@@ -656,7 +851,13 @@
         }
 
         function updateSolutionPPM(catId, solKey, value) {
-            state.categoryData[catId].solutions[solKey].ppm = parseInt(value);
+            const val = parseInt(value);
+            state.categoryData[catId].solutions[solKey].ppm = val;
+            
+            // Fixed: Update specific span ID
+            const dispEl = document.getElementById(`ppm-disp-${catId}-${solKey}`);
+            if(dispEl) dispEl.innerText = val;
+
             updateUI(false); 
         }
 
@@ -683,11 +884,11 @@
             chartInstance = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: RAW_CATEGORIES.map(c => c.name),
+                    labels: CATEGORY_BASE.map(c => c.name),
                     datasets: [{
                         label: 'Potential Revenue',
                         data: [],
-                        backgroundColor: RAW_CATEGORIES.map(c => c.color),
+                        backgroundColor: CATEGORY_BASE.map(c => c.color),
                         borderRadius: 6,
                     }]
                 },
@@ -734,14 +935,13 @@
             let grandTotalAddressableFlour = 0;
             const categoryResults = [];
 
-            RAW_CATEGORIES.forEach(cat => {
+            CATEGORY_BASE.forEach(cat => {
                 const catState = state.categoryData[cat.id];
                 
-                // 1. Calibration
+                // 1. Calibration (Applies to Base Volume from Assumptions)
                 let calibratedVolume = cat.volume * state.calibrationFactor;
 
                 // 2. Growth Projection
-                // Volume = Base * (1 + CAGR)^Years
                 const cagrDecimal = catState.cagr / 100;
                 const projectedVolume = calibratedVolume * Math.pow((1 + cagrDecimal), state.projectionYears);
 
@@ -758,10 +958,12 @@
                     if (sol.active) {
                         activeCount++;
                         let priceEUR = 0;
-                        if (SOLUTION_META[key].isNew) {
+                        // Use Custom override if set (for new items adjusted in detailed view)
+                        // OR fallback to BASE_PRICES_EUR (from Assumptions Tab)
+                        if (sol.customPriceEUR !== undefined) {
                              priceEUR = sol.customPriceEUR;
                         } else {
-                             priceEUR = SOLUTION_PRICES_EUR[key];
+                             priceEUR = BASE_PRICES_EUR[key];
                         }
 
                         const solRevenue = flourKg * (sol.ppm / 1000000) * priceEUR;
@@ -862,7 +1064,7 @@
                 const ppm = Math.round((pct / 100) * 500);
                 inputs.dosageLabel.innerText = `${pct}% (~${ppm} ppm)`;
                 
-                RAW_CATEGORIES.forEach(cat => {
+                CATEGORY_BASE.forEach(cat => {
                     Object.keys(state.categoryData[cat.id].solutions).forEach(solKey => {
                         state.categoryData[cat.id].solutions[solKey].ppm = ppm;
                     });
@@ -885,38 +1087,8 @@
             state.currency = 'EUR';
             state.projectionYears = 3;
             
-            // Reset Category Data
-            RAW_CATEGORIES.forEach(cat => {
-                let availableSolKeys = ['conditioning', 'strengthening', 'freshness', 'appearance', 'acrylamide', 'flourCorrection', 'glutenStrengthening'];
-                if (cat.id === 'biscuits') {
-                    availableSolKeys = ['biscuitWeakening', 'strengthening', 'freshness', 'appearance', 'acrylamide', 'flourCorrection'];
-                }
-                
-                availableSolKeys = [...availableSolKeys, ...NEW_KEYS];
-
-                let solutionsObj = {};
-                availableSolKeys.forEach(key => {
-                    const isNew = NEW_KEYS.includes(key);
-                    solutionsObj[key] = {
-                        active: isNew ? false : DEFAULT_SOLUTIONS[cat.id].includes(key),
-                        ppm: isNew ? 0 : (DEFAULT_PPM[key] || 100),
-                        customPriceEUR: isNew ? (100.0 / AUD_TO_EUR_RATE) : undefined
-                    };
-                });
-                state.categoryData[cat.id] = { solutions: solutionsObj, cagr: cat.defaultCAGR };
-            });
-
-            inputs.penetration.value = 20;
-            inputs.penetrationDisplay.innerText = "20%";
-            inputs.dosage.value = 20;
-            inputs.dosageLabel.innerText = "Custom Mix";
-            inputs.yearsInput.value = 3;
-            inputs.yearsDisplay.innerText = "+3 Years";
-            setCurrency('EUR'); 
-
-            switchTab('global');
-            renderCAGRInputs();
-            updateUI();
+            // Reset Category Data logic... (skipping full reset block for brevity, it mirrors initial state)
+            location.reload(); // Simplest reset for this scale
         }
 
         // --- INITIALIZE ---
