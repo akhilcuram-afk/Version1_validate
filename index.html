@@ -15,6 +15,12 @@
         body {
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
             background-color: #f1f7f0;
+            height: 100vh; /* Ensure full viewport usage */
+            overflow-y: hidden; /* Prevent body scroll, handle inside components */
+        }
+        .main-container {
+            height: calc(100vh - 80px); /* Navbar is approx 64px + padding */
+            overflow-y: auto;
         }
         .card {
             transition: all 0.3s ease;
@@ -45,14 +51,18 @@
         }
         /* Custom Scrollbar */
         .custom-scroll::-webkit-scrollbar {
-            width: 6px;
+            width: 8px; 
         }
         .custom-scroll::-webkit-scrollbar-track {
             background: #f1f1f1; 
+            border-radius: 4px;
         }
         .custom-scroll::-webkit-scrollbar-thumb {
             background: #cbd5e1; 
-            border-radius: 3px;
+            border-radius: 4px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
         }
         .tooltip {
             position: relative;
@@ -67,7 +77,7 @@
             border-radius: 6px;
             padding: 8px;
             position: absolute;
-            z-index: 10;
+            z-index: 50; 
             bottom: 125%;
             left: 50%;
             margin-left: -100px;
@@ -124,9 +134,9 @@
 <body class="text-gray-800">
 
     <!-- Navbar -->
-    <nav class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
+    <nav class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50 h-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
+            <div class="flex justify-between items-center h-full">
                 <div class="flex items-center">
                     <div class="flex-shrink-0 flex items-center text-blue-600">
                         <i class="fa-solid fa-chart-pie text-2xl mr-2"></i>
@@ -149,24 +159,24 @@
                         <i class="fa-solid fa-rotate-left mr-1"></i> Reset
                     </button>
                     <div class="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold">
-                        v3.1 Fixed PPM
+                        v4.0 Final
                     </div>
                 </div>
             </div>
         </div>
     </nav>
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 main-container custom-scroll">
         
         <!-- DASHBOARD VIEW -->
         <div id="dashboardView" class="block">
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 h-full">
 
                 <!-- LEFT COLUMN: Inputs -->
-                <div class="lg:col-span-5 space-y-6">
+                <div class="lg:col-span-5 space-y-6 flex flex-col h-full">
                     
                     <!-- Strategy Tabs -->
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-[800px]">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-[calc(100vh-180px)] min-h-[500px]">
                         <!-- Tab Headers -->
                         <div class="flex border-b border-gray-100 flex-shrink-0">
                             <button id="tabGlobalBtn" class="flex-1 py-4 text-sm text-center transition tab-active" onclick="switchTab('global')">
@@ -178,7 +188,7 @@
                         </div>
 
                         <!-- Tab Content: Global -->
-                        <div id="tabGlobalContent" class="p-6 flex-1 overflow-y-auto">
+                        <div id="tabGlobalContent" class="p-6 flex-1 overflow-y-auto custom-scroll">
                             <h2 class="text-sm font-bold text-gray-900 mb-4 uppercase tracking-wide text-xs text-gray-400">
                                 Regional Adjustments
                             </h2>
@@ -243,10 +253,10 @@
                             </div>
 
                             <!-- Info Box -->
-                            <div class="p-3 bg-blue-50 rounded-lg border border-blue-100 text-xs text-blue-700 mt-6">
+                            <div class="p-3 bg-blue-50 rounded-lg border border-blue-100 text-xs text-blue-700 mt-6 mb-4">
                                 <div class="flex items-start mb-1">
                                     <i class="fa-solid fa-bullseye mt-0.5 mr-2"></i>
-                                    <span><strong>Target Calibration:</strong> The model is calibrated so that 100% Sensitivity equals exactly <strong>€8,734,576</strong> (Baseline).</span>
+                                    <span><strong>Target Calibration:</strong> The model is calibrated so that 100% Sensitivity equals exactly <strong>€4,570,000</strong> (Baseline).</span>
                                 </div>
                                 <div class="flex items-start">
                                     <i class="fa-solid fa-flask mt-0.5 mr-2"></i>
@@ -264,7 +274,8 @@
                                 <p class="text-xs text-gray-500 mt-1">Enable "New" solutions and adjust pricing per category below.</p>
                             </div>
                             
-                            <div class="overflow-y-auto custom-scroll p-4 space-y-4 flex-1" id="categoryListContainer">
+                            <!-- Updated padding bottom to 24 (6rem) to ensure last item is visible -->
+                            <div class="overflow-y-auto custom-scroll p-4 pb-24 space-y-4 flex-1 pr-3" id="categoryListContainer">
                                 <!-- JS will inject category cards here -->
                             </div>
                         </div>
@@ -290,7 +301,7 @@
                             </div>
                             <div class="mt-4 text-blue-200 text-xs flex justify-between">
                                 <span>Based on current Sensitivity & Mix</span>
-                                <span id="targetIndicator" class="hidden font-semibold opacity-75">Target: €8.73M</span>
+                                <span id="targetIndicator" class="hidden font-semibold opacity-75">Target: €4.57M</span>
                             </div>
                         </div>
 
@@ -358,7 +369,7 @@
 
         <!-- ASSUMPTIONS VIEW -->
         <div id="assumptionsView" class="hidden">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8 mb-8">
                 <div class="flex items-center justify-between mb-8">
                     <div>
                         <h2 class="text-2xl font-bold text-gray-900">Model Assumptions</h2>
@@ -424,7 +435,7 @@
 
         // Constants
         const AUD_TO_EUR_RATE = 2.33; 
-        const TARGET_MARKET_POTENTIAL_EUR = 8734576.1; 
+        const TARGET_MARKET_POTENTIAL_EUR = 4570000; 
         
         // Solution Metadata
         const SOLUTION_META = {
@@ -475,18 +486,21 @@
             cakes: ['freshness', 'appearance'],
             pastries: ['conditioning', 'appearance'],
             chips: ['appearance'],
-            biscuits: ['biscuitWeakening', 'appearance'] 
+            biscuits: ['biscuitWeakening', 'appearance'],
+            dryPasta: ['conditioning', 'freshness', 'strengthening', 'flourCorrection']
         };
 
         const NEW_KEYS = ['fatReduction', 'newApps', 'crispiness'];
 
         // Mutable Category Data (Used as Base)
+        // Set Dry Pasta volume to 0 as requested
         let CATEGORY_BASE = [
             { id: 'bread', name: 'Bread', volume: 2270000, flourPct: 0.65, color: 'rgba(59, 130, 246, 0.8)', defaultCAGR: 1.5 },
             { id: 'cakes', name: 'Cakes', volume: 182500, flourPct: 0.30, color: 'rgba(16, 185, 129, 0.8)', defaultCAGR: 2.0 },
             { id: 'pastries', name: 'Pastries', volume: 141000, flourPct: 0.50, color: 'rgba(245, 158, 11, 0.8)', defaultCAGR: 2.5 },
             { id: 'chips', name: 'Chips', volume: 353000, flourPct: 0.50, color: 'rgba(239, 68, 68, 0.8)', defaultCAGR: 3.0 },
-            { id: 'biscuits', name: 'Biscuits', volume: 585000, flourPct: 0.50, color: 'rgba(139, 92, 246, 0.8)', defaultCAGR: 1.8 }
+            { id: 'biscuits', name: 'Biscuits', volume: 585000, flourPct: 0.50, color: 'rgba(139, 92, 246, 0.8)', defaultCAGR: 1.8 },
+            { id: 'dryPasta', name: 'Dry Pasta', volume: 0, flourPct: 0.65, color: 'rgba(255, 206, 86, 0.8)', defaultCAGR: 1.5 }
         ];
 
         // --- STATE MANAGEMENT ---
@@ -512,8 +526,11 @@
             let solutionsObj = {};
             availableSolKeys.forEach(key => {
                 const isNew = NEW_KEYS.includes(key);
+                // Dry Pasta uses default map
+                const isDefaultActive = DEFAULT_SOLUTIONS[cat.id] ? DEFAULT_SOLUTIONS[cat.id].includes(key) : false;
+                
                 solutionsObj[key] = {
-                    active: isNew ? false : DEFAULT_SOLUTIONS[cat.id].includes(key),
+                    active: isNew ? false : isDefaultActive,
                     ppm: isNew ? 0 : (DEFAULT_PPM[key] || 100),
                     customPriceEUR: undefined // Will inherit from BASE_PRICES_EUR if undefined
                 };
@@ -538,7 +555,7 @@
                 
                 Object.keys(catState.solutions).forEach(key => {
                     // Only count defaults
-                    if (!NEW_KEYS.includes(key) && DEFAULT_SOLUTIONS[cat.id].includes(key)) {
+                    if (!NEW_KEYS.includes(key) && DEFAULT_SOLUTIONS[cat.id] && DEFAULT_SOLUTIONS[cat.id].includes(key)) {
                          const ppm = DEFAULT_PPM[key] || 100;
                          const price = BASE_PRICES_EUR[key];
                          totalUncalibratedRevenue += flourKg * (ppm / 1000000) * price;
@@ -671,16 +688,20 @@
         // --- CURRENCY TOGGLE ---
         function setCurrency(curr) {
             state.currency = curr;
+            // Calculate dynamic target string
+            const targetVal = TARGET_MARKET_POTENTIAL_EUR * (curr === 'AUD' ? AUD_TO_EUR_RATE : 1);
+            const symbol = curr === 'EUR' ? '€' : '$';
+            const valFormatted = (targetVal / 1000000).toFixed(2) + "M";
+
             if (curr === 'EUR') {
                 inputs.btnEUR.className = "px-3 py-1 rounded-md text-sm font-medium transition shadow-sm bg-white text-blue-600";
                 inputs.btnAUD.className = "px-3 py-1 rounded-md text-sm font-medium transition text-gray-500 hover:text-gray-700";
-                inputs.targetIndicator.innerText = "Target: €8.73M";
             } else {
                 inputs.btnAUD.className = "px-3 py-1 rounded-md text-sm font-medium transition shadow-sm bg-white text-blue-600";
                 inputs.btnEUR.className = "px-3 py-1 rounded-md text-sm font-medium transition text-gray-500 hover:text-gray-700";
-                const targetAUD = (TARGET_MARKET_POTENTIAL_EUR * AUD_TO_EUR_RATE / 1000000).toFixed(2);
-                inputs.targetIndicator.innerText = `Target: $${targetAUD}M`;
             }
+            inputs.targetIndicator.innerText = `Target: ${symbol}${valFormatted}`;
+
             // Re-render inputs if on assumption page
             if (state.view === 'assumptions') renderAssumptions();
             // Re-render dash controls
